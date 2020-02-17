@@ -16,6 +16,8 @@ RUN dnf install -y \
         python3-devel \
         libpq \
         libpq-devel \
+        buildah \
+        openssl \
     && dnf -y clean all
 
 RUN mkdir -p /var/run/pulp \
@@ -42,6 +44,8 @@ RUN python3 -m venv "${PULP_VENV}" \
     && pip install --no-cache-dir -U \
         'pip>=20.0,<21.0' \
     && pip --no-cache-dir install \
+        pulp-container \
+    && pip --no-cache-dir install \
         -c /tmp/constraints.txt \
         -e "${PULP_CODE}/pulp_ansible"
 
@@ -49,6 +53,16 @@ ENV PATH="${PULP_VENV}/bin:${PATH}"
 
 COPY docker/pulp/settings.py /etc/pulp/settings.py
 COPY docker/pulp/ansible.cfg /etc/ansible/ansible.cfg
+
+RUN openssl ecparam -genkey -name prime256v1 -noout -out /tmp/private_key.pem \
+    && openssl ec -in /tmp/private_key.pem -pubout -out /tmp/public_key.pem \
+    && echo "TOKEN_SERVER = 'http://localhost:24816/token'" >> /etc/pulp/settings.py \
+    && echo "TOKEN_SIGNATURE_ALGORITHM = 'E256'" >> /etc/pulp/settings.py \
+    && echo "PUBLIC_KEY_PATH = '/tmp/public_key.pem'" >> /etc/pulp/settings.py \
+    && echo "PRIVATE_KEY_PATH = '/tmp/private_key.pem'" >> /etc/pulp/settings.py
+
+ENV PATH="/venv/bin:/usr/bin:$PATH"
+
 COPY docker/pulp/entrypoint.sh /entrypoint
 
 
