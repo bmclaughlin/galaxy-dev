@@ -16,6 +16,7 @@ RUN dnf install -y \
         python3-devel \
         libpq \
         libpq-devel \
+        sudo \
         buildah \
         openssl \
     && dnf -y clean all
