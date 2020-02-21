@@ -7,6 +7,22 @@ ENV LANG=en_US.UTF-8 \
     PULP_SETTINGS=/etc/pulp/settings.py \
     DJANGO_SETTINGS_MODULE=pulpcore.app.settings \
     ANSIBLE_TEST_VENV=/venv_ansible_test
+    BUILDAH_ISOLATION=chroot
+
+
+RUN mkdir -p /var/lib/shared/overlay-images /var/lib/shared/overlay-layers; \
+    && touch /var/lib/shared/overlay-images/images.lock; \
+    && touch /var/lib/shared/overlay-layers/layers.lock
+
+COPY docker/pulp/storage.conf /etc/containers/storage.conf
+
+RUN sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' /etc/containers/storage.conf
+
+RUN useradd build; \
+    && dnf -y update; \
+    && dnf -y reinstall shadow-utils; \
+    && dnf -y install buildah fuse-overlayfs --exclude container-selinux; \
+    && rm -rf /var/cache /var/log/dnf* /var/log/yum.*
 
 RUN dnf install -y \
         glibc-langpack-en \
@@ -17,7 +33,6 @@ RUN dnf install -y \
         libpq \
         libpq-devel \
         sudo \
-        buildah \
         openssl \
     && dnf -y clean all
 

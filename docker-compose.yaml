@@ -56,6 +56,8 @@ services:
     env_file:
       - ./docker/pulp/env
     command: ['run', 'worker']
+    devices:
+      - "/dev/fuse:/dev/fuse"
     volumes:
       - ./pulp_ansible:/code/pulp_ansible
       - ./docker/importer-plugins:/code/importer-plugins
